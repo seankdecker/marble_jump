@@ -2,6 +2,7 @@ import sys
 
 BOARD_SIZE = 9
 DIRECTIONS = ['up', 'left', 'right', 'down']
+PRINTOUT = False
 
 class Board:
     def __init__(self, type):
@@ -31,6 +32,14 @@ class Board:
         self.first[3] = 0
         self.numBalls = 11
 
+def serializeBoard(board):
+    result = ''
+    for i in range(len(board.rows)):
+        for j in range(len(board.rows[i])):
+            if board.rows[i][j] == -1: continue
+            elif board.rows[i][j] == 0: result += '0'
+            else: result += '1'
+    return result
 
 def printBoard(board):
     print ' ',
@@ -94,40 +103,63 @@ def unjump(board, jumper, direction):
         board.rows[i][j - 1] = 1
         board.rows[i][j - 2] = 0
     if direction == 'right':
-        board.rows[i][j + 1] = 1
-        board.rows[i][j + 2] = 0
+        board.rows[i][j + 1] = 0
+        board.rows[i][j + 2] = 1
     if direction == 'down':
-        board.rows[i + 1][j] = 1
-        board.rows[i + 2][j] = 0
+        board.rows[i + 1][j] = 0
+        board.rows[i + 2][j] = 1
     board.numBalls += 1
 
 
-def solve(board, moves):
-    print board.numBalls
+def solve(board, moves, tried):
+    if PRINTOUT: print board.numBalls
+    if PRINTOUT: printBoard(board)
     if board.numBalls == 1: return True
+    if serializeBoard(board) in tried: return False
     for i in range(len(board.rows)):
         for j in range(len(board.rows[i])):
+            if board.rows[i][j] == -1: continue
+            if board.rows[i][j] == 0: continue
             ball = (i, j)
             for direction in DIRECTIONS:
                 if canJump(board, ball, direction):
+                    if PRINTOUT: print 'jumping: ', ball, direction
                     jump(board, ball, direction)
                     moves.append((ball, direction))
-                    possible = solve(board, moves)
+                    possible = solve(board, moves, tried)
                     unjump(board, ball, direction)
+                    if PRINTOUT: print 'unjumping: ', ball, direction
                     if possible:
-                        printBoard(board)
                         return True
                     moves.remove((ball, direction))
+    tried.append(serializeBoard(board))
     return False
 
 
 
 
 if __name__ == "__main__":
+    print '------------WELCOME--------------'
     board = Board(sys.argv[1])
-    moves = []
-    if solve(board, moves):
-        print moves
-    else:
-        print 'NOT POSSIBLE'
-    printBoard(board)
+    if '-s' in sys.argv:
+        moves, tried = [], []
+        if solve(board, moves, tried):
+            print moves
+        else:
+            print 'NOT POSSIBLE'
+        printBoard(board)
+    if '-p' in sys.argv:
+        printBoard(board)
+    for command in sys.argv:
+        if command[0] != '=': continue
+        ball = (int(command[1]), int(command[3]))
+        print ball
+        direction = str(command[5:])
+        print direction
+        if not canJump(board, ball, direction):
+            print 'INVALID jump'
+            quit(1)
+        jump(board, ball, direction)
+        printBoard(board)
+
+    print '---------------BYE---------------'
